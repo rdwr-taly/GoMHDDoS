@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'gomhddos-container-control'
+    static_configs:
+      - targets: ['gomhddos-control:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    
+  - job_name: 'gomhddos-api-metrics'
+    static_configs:
+      - targets: ['gomhddos-control:8080']
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s

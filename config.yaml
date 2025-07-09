@@ -1,0 +1,5 @@
+# GoMHDDoS Container Control Configuration
+adapter:
+  class: gomhddos_adapter.GoMHDDoSAdapter  # dotted-path to our GoMHDDoS adapter
+  primary_payload_key: method              # attack method is required in /api/start body
+  run_as_user: appuser                     # run attacks as non-root user

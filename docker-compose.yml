@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  gomhddos-control:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gomhddos-container-control
+    ports:
+      - "8080:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - TZ=UTC
+    volumes:
+      # Mount proxy files for easy updates
+      - ./files/proxies:/app/files/proxies:ro
+      # Mount logs for external monitoring
+      - ./logs:/app/logs
+    restart: unless-stopped
+    
+    # Security and resource limits
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - NET_ADMIN  # Required for traffic control features
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    
+    # Resource limits (adjust based on attack requirements)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Network configuration for advanced attacks
+    networks:
+      - gomhddos-net
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gomhddos.rule=Host(`gomhddos.local`)"
+      - "traefik.http.services.gomhddos.loadbalancer.server.port=8080"
+
+  # Optional: Prometheus monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gomhddos-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - gomhddos-net
+    profiles:
+      - monitoring
+
+  # Optional: Grafana dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gomhddos-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+    networks:
+      - gomhddos-net
+    profiles:
+      - monitoring
+
+networks:
+  gomhddos-net:
+    driver: bridge
+
+volumes:
+  grafana-storage:
