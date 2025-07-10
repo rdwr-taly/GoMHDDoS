@@ -1,1 +1,6 @@
 .vscode
+__pycache__
+collect.sh
+output.txt
+output.text
+push.sh
