@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 import psutil, uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel # <-- MODIFICATION: Import RootModel
 from ruamel.yaml import YAML
 
 # ---------- Logging (UTC) -------------------------------------------------- #
@@ -58,8 +58,10 @@ def _thread(fn, *args):  # fire‑and‑forget helper
 # ---------- FastAPI App ---------------------------------------------------- #
 app = FastAPI(title="Container Control Core", version="1.1")
 
-class StartBody(BaseModel): __root__: Dict[str, Any]       # permissive
-class UpdateBody(BaseModel): __root__: Dict[str, Any]
+# <-- MODIFICATION: Update models to be Pydantic V2 compatible
+class StartBody(RootModel[Dict[str, Any]]): pass
+class UpdateBody(RootModel[Dict[str, Any]]): pass
+# <-- END MODIFICATION
 class StopBody(BaseModel): force: Optional[bool] = False
 
 # ---------- Lifecycle glue ------------------------------------------------- #
@@ -85,21 +87,24 @@ def _stop():
 @app.get("/api/health")
 async def health(): return {"status": "healthy", "app_status": state["app_status"]}
 
+# <-- MODIFICATION: Update endpoint signatures and logic to use new models
 @app.post("/api/start")
-async def api_start(body: dict):
-    if PRIMARY_KEY not in body:
+async def api_start(body: StartBody):
+    payload = body.root
+    if PRIMARY_KEY not in payload:
         raise HTTPException(400, f"missing key '{PRIMARY_KEY}'")
     if state["app_status"] == "running": _stop()
     state["app_status"] = "initializing"
-    _thread(_start, body)
+    _thread(_start, payload)
     return {"message": "start initiated"}
 
 @app.post("/api/update")
-async def api_update(body: dict):
+async def api_update(body: UpdateBody):
+    payload = body.root
     if state["app_status"] != "running":
         raise HTTPException(400, "application not running")
     try:
-        updated = adapter.update(body)  # returns bool
+        updated = adapter.update(payload)  # returns bool
     except NotImplementedError:
         raise HTTPException(409, "live‑update not supported") from None
     except Exception as exc:
@@ -108,6 +113,7 @@ async def api_update(body: dict):
     if updated:
         return {"message": "update applied"}
     raise HTTPException(409, "adapter declined update")
+# <-- END MODIFICATION
 
 @app.post("/api/stop")
 async def api_stop(_: StopBody):
