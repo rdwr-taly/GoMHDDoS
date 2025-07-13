@@ -1,0 +1,305 @@
+{
+  "id": "gomhddos",
+  "displayName": "GoMHDDoS (Web DDoS)",
+  "description": "High-performance Layer 7 Web DDoS attack tool using MHDDoS techniques for stress testing and security validation.",
+  "icon": "fas fa-bolt",
+  "category": "Security Tools",
+  "subCategory": "DDoS Attack",
+  "deploymentContext": "app",
+  "image_id_ref": "gomhddos-latest",
+  "taskLifecycle": "ephemeral",
+
+  "deployment": {
+    "container_command_template": [
+      "python", "-m", "uvicorn", "container_control_core:app",
+      "--host", "0.0.0.0", "--port", "8080"
+    ],
+    "fixed_ports": [8080],
+    "default_env_vars": [
+      {
+        "name": "METHOD",
+        "label": "Attack Method",
+        "type": "select",
+        "required": true,
+        "default_value": "GET",
+        "options": [
+          {"value": "GET", "label": "HTTP GET Flood"},
+          {"value": "POST", "label": "HTTP POST Flood"},
+          {"value": "HEAD", "label": "HTTP HEAD Flood"},
+          {"value": "PUT", "label": "HTTP PUT Flood"},
+          {"value": "DELETE", "label": "HTTP DELETE Flood"},
+          {"value": "OPTIONS", "label": "HTTP OPTIONS Flood"},
+          {"value": "PATCH", "label": "HTTP PATCH Flood"},
+          {"value": "BYPASS", "label": "Bypass Mode"},
+          {"value": "BOMB", "label": "Zip Bomb Attack"}
+        ],
+        "tooltip": "Type of HTTP attack method to use"
+      },
+      {
+        "name": "URL",
+        "label": "Target URL",
+        "type": "string",
+        "required": true,
+        "tooltip": "Target URL for the attack (e.g., https://target.com)",
+        "default_value": ""
+      },
+      {
+        "name": "THREADS",
+        "label": "Attack Threads",
+        "type": "integer",
+        "required": true,
+        "default_value": 100,
+        "min": 1,
+        "max": 10000,
+        "tooltip": "Number of concurrent attack threads"
+      },
+      {
+        "name": "DURATION",
+        "label": "Duration (seconds)",
+        "type": "integer",
+        "required": true,
+        "default_value": 60,
+        "min": 1,
+        "max": 3600,
+        "tooltip": "Attack duration in seconds"
+      },
+      {
+        "name": "RPC",
+        "label": "Requests Per Connection",
+        "type": "integer",
+        "required": false,
+        "default_value": 50,
+        "min": 1,
+        "max": 1000,
+        "tooltip": "Number of requests per connection before reconnecting"
+      },
+      {
+        "name": "PROXYFILE",
+        "label": "Proxy List File",
+        "type": "string",
+        "required": false,
+        "default_value": "/app/files/proxies/http.txt",
+        "tooltip": "Path to proxy list file (leave empty to disable proxies)"
+      },
+      {
+        "name": "COOKIE",
+        "label": "Cookie Header",
+        "type": "string",
+        "required": false,
+        "tooltip": "Custom cookie header to include in requests",
+        "default_value": ""
+      },
+      {
+        "name": "USER_AGENT",
+        "label": "User Agent",
+        "type": "string",
+        "required": false,
+        "tooltip": "Custom User-Agent header (leave empty for random)",
+        "default_value": ""
+      },
+      {
+        "name": "REFERER",
+        "label": "Referer Header",
+        "type": "string",
+        "required": false,
+        "tooltip": "Custom Referer header for requests",
+        "default_value": ""
+      },
+      {
+        "name": "BANDWIDTH_LIMIT_MBPS",
+        "label": "Bandwidth Limit (Mbps)",
+        "type": "integer",
+        "required": false,
+        "default_value": 10,
+        "min": 1,
+        "max": 10000,
+        "tooltip": "Maximum outgoing bandwidth in Mbps"
+      },
+      {
+        "name": "LATENCY_MS",
+        "label": "Network Latency (ms)",
+        "type": "integer",
+        "required": false,
+        "default_value": 0,
+        "min": 0,
+        "max": 5000,
+        "tooltip": "Artificial network latency to simulate"
+      },
+      {
+        "name": "DEBUG",
+        "label": "Debug Mode",
+        "type": "boolean",
+        "required": false,
+        "default_value": false,
+        "tooltip": "Enable detailed logging and debug output"
+      }
+    ],
+    "volume_mounts_template": [
+      {
+        "host_path_template": "/var/showrunner/shared/proxy-lists",
+        "container_path": "/app/files/proxies",
+        "mode": "ro",
+        "optional": true
+      },
+      {
+        "host_path_template": "/var/showrunner/logs/gomhddos/{{task.id}}",
+        "container_path": "/app/logs",
+        "mode": "rw",
+        "optional": false
+      }
+    ]
+  },
+
+  "containerControl": {
+    "enabled": true,
+    "api_port_fixed": 8080,
+    "metrics_endpoint_path": "/api/metrics",
+    "actions": {
+      "start": {
+        "endpoint": "/api/start",
+        "method": "POST",
+        "payload_template_type": "custom",
+        "payload_template": {
+          "method": "{{env.METHOD}}",
+          "url": "{{env.URL}}",
+          "threads": "{{env.THREADS}}",
+          "duration": "{{env.DURATION}}",
+          "rpc": "{{env.RPC}}",
+          "proxyfile": "{{env.PROXYFILE}}",
+          "cookie": "{{env.COOKIE}}",
+          "user_agent": "{{env.USER_AGENT}}",
+          "referer": "{{env.REFERER}}",
+          "bandwidth_limit_mbps": "{{env.BANDWIDTH_LIMIT_MBPS}}",
+          "latency_ms": "{{env.LATENCY_MS}}",
+          "debug": "{{env.DEBUG}}"
+        }
+      },
+      "stop": {
+        "endpoint": "/api/stop",
+        "method": "POST"
+      },
+      "update_config": {
+        "endpoint": "/api/update",
+        "method": "POST",
+        "payload_template_type": "custom",
+        "payload_template": {
+          "threads": "{{env.THREADS}}",
+          "bandwidth_limit_mbps": "{{env.BANDWIDTH_LIMIT_MBPS}}",
+          "latency_ms": "{{env.LATENCY_MS}}",
+          "debug": "{{env.DEBUG}}"
+        },
+        "updatable_fields": ["THREADS", "BANDWIDTH_LIMIT_MBPS", "LATENCY_MS", "DEBUG"]
+      }
+    }
+  },
+
+  "capabilities": {
+    "can_stop": true,
+    "can_resume": false,
+    "can_redeploy": true,
+    "can_edit_while_running": true
+  },
+
+  "monitoring": {
+    "prometheus": {
+      "enabled": true,
+      "scrape_path": "/metrics",
+      "scrape_port_number": 8080
+    },
+    "grafana": {
+      "dashboard_url_template": "/grafana/d/gomhddos-{{task.id}}/gomhddos-details"
+    }
+  },
+
+  "ui": {
+    "deployment_form_sections": [
+      {
+        "title": "Attack Configuration",
+        "fields": ["METHOD", "URL", "THREADS", "DURATION", "RPC"]
+      },
+      {
+        "title": "Proxy & Headers",
+        "fields": ["PROXYFILE", "USER_AGENT", "REFERER", "COOKIE"]
+      },
+      {
+        "title": "Network Controls",
+        "fields": ["BANDWIDTH_LIMIT_MBPS", "LATENCY_MS", "DEBUG"]
+      }
+    ],
+    "card_info_fields": [
+      {
+        "label": "Target URL",
+        "source_type": "env_var",
+        "source_name": "URL"
+      },
+      {
+        "label": "Attack Method",
+        "source_type": "env_var",
+        "source_name": "METHOD"
+      },
+      {
+        "label": "Threads",
+        "source_type": "env_var",
+        "source_name": "THREADS"
+      },
+      {
+        "label": "Duration",
+        "source_type": "env_var",
+        "source_name": "DURATION",
+        "transform": "duration_seconds"
+      }
+    ],
+    "card_primary_metric": {
+      "label": "Outgoing Traffic",
+      "source_path": "metrics.outgoing_throughput_mbps",
+      "unit": "Mbps"
+    },
+    "card_secondary_metrics": [
+      {
+        "label": "Configured Threads",
+        "source_path": "metrics.threads_configured",
+        "unit": ""
+      },
+      {
+        "label": "Bandwidth Limit",
+        "source_path": "metrics.bandwidth_limit_mbps",
+        "unit": "Mbps"
+      },
+      {
+        "label": "Attack Duration",
+        "source_path": "metrics.attack_duration_seconds",
+        "unit": "s"
+      },
+      {
+        "label": "Process Status",
+        "source_path": "process.status",
+        "unit": ""
+      }
+    ],
+    "card_basic_metrics": [
+      {
+        "label": "CPU",
+        "source_path": "container.cpu_percent",
+        "unit": "%",
+        "max_value": 100
+      },
+      {
+        "label": "Memory",
+        "source_path": "container.memory_percent",
+        "unit": "%",
+        "max_value": 100
+      },
+      {
+        "label": "Network Out",
+        "source_path": "network.bytes_sent_mbps",
+        "unit": "Mbps"
+      },
+      {
+        "label": "Network In",
+        "source_path": "network.bytes_received_mbps",
+        "unit": "Mbps"
+      }
+    ],
+    "card_live_update_fields": ["THREADS", "BANDWIDTH_LIMIT_MBPS", "LATENCY_MS"]
+  }
+}

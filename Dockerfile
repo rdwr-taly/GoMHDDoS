@@ -60,9 +60,17 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Container Control core files
-COPY container_control_core.py .
-COPY app_adapter.py .
+# Clone Container Control Core v2.0 from GitHub
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
+    git clone --branch v1.0.0 --depth 1 https://github.com/rdwr-taly/container-control.git /tmp/container-control && \
+    cp /tmp/container-control/container_control_core.py . && \
+    cp /tmp/container-control/app_adapter.py . && \
+    rm -rf /tmp/container-control && \
+    apt-get remove -y git && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy application-specific files
 COPY gomhddos_adapter.py .
 COPY config.yaml .
 
@@ -86,7 +94,7 @@ chown -R appuser:appuser /app\n\
 chmod +x /app/binary/gomhddos\n\
 \n\
 # Start the container control service\n\
-exec python -m uvicorn container_control_core:app --host 0.0.0.0 --port 8080 --loop uvloop\n\
+exec python -m uvicorn container_control_core:app --host 0.0.0.0 --port 8080\n\
 ' > /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh
 
