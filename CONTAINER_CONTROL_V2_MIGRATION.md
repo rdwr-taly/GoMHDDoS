@@ -5,7 +5,7 @@ This document outlines the migration of GoMHDDoS from the old Container Control 
 
 ## Key Changes
 
-### 1. Simplified Adapter (`gomhddos_adapter.py`)
+### 1. Simplified Adapter (`gomhddos_adapter/GoMHDDoSAdapter.py`)
 - **Reduced from 319 lines to ~155 lines** (50% reduction)
 - **Removed manual process management** - now handled by core services
 - **Removed custom metrics collection** - now handled by core services  

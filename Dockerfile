@@ -71,7 +71,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy application-specific files
-COPY gomhddos_adapter.py .
+COPY gomhddos_adapter/ ./gomhddos_adapter/
 COPY config.yaml .
 
 # Copy GoMHDDoS binary from builder stage
