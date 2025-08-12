@@ -31,16 +31,4 @@ traffic_control:
   bandwidth_mbps_key: "bandwidth_limit_mbps"
   default_bandwidth_mbps: 10
   latency_ms_key: "latency_ms"
-  default_latency_ms: 0
-
-# --- Privileged Commands (Optional) ---
-# System tuning for high-performance attacks
-privileged_commands:
-  pre_start:
-    # Increase network connection limits for high-throughput attacks
-    - ["sysctl", "-w", "net.core.somaxconn=4096"]
-    - ["sysctl", "-w", "net.core.netdev_max_backlog=5000"]
-    - ["sysctl", "-w", "net.ipv4.tcp_max_syn_backlog=4096"]
-  post_stop:
-    # Clean up any firewall rules (if needed)
-    - ["iptables", "-F", "OUTPUT", "2>/dev/null", "||", "true"]
+  default_latency_ms: 1

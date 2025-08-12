@@ -169,3 +169,22 @@ class GoMHDDoSAdapter(ApplicationAdapter):
         
         # Clear configuration on exit
         self.current_config = {}
+
+
+# --------------------------------------------------------------------------- #
+# Module-level helpers
+
+def build_attack_command(payload: Dict[str, Any]) -> List[str]:
+    """Compatibility wrapper for Container Control Core.
+
+    The core expects ``process_management.command_factory`` to resolve to a
+    module attribute.  Earlier versions exposed ``build_attack_command`` only as
+    an instance method on :class:`GoMHDDoSAdapter`, which caused an
+    ``AttributeError`` when the core tried to load it directly from the module.
+
+    This wrapper mirrors the adapter's method so the core can import and invoke
+    it without an adapter instance.
+    """
+
+    adapter = GoMHDDoSAdapter()
+    return adapter.build_attack_command(payload)
