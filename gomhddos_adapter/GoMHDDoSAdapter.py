@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import time
+import signal
 from typing import Any, Dict, List
 
 import psutil
@@ -212,14 +213,19 @@ class GoMHDDoSAdapter(ApplicationAdapter):
         # Clear configuration on exit
         self.current_config = {}
 
-        # If configured for ephemeral deployments, terminate the container once
-        # the attack process has finished so Docker can cleanly remove it. This
-        # behaviour is enabled by default but can be disabled by setting the
-        # environment variable ``EXIT_ON_FINISH`` to ``0`` or ``false``.
-        exit_on_finish = os.getenv("EXIT_ON_FINISH", "1").lower() not in {"0", "false"}
-        if exit_on_finish:
-            print("Attack process completed; exiting container.")
-            os._exit(0)
+        # Trigger container shutdown once the attack process finishes.  Always
+        # run any core cleanup hooks, then terminate the container if ephemeral
+        # deployments are enabled.
+        try:
+            # Ensure any post-stop hooks and cleanup run
+            import container_control_core  # type: ignore
+            container_control_core._stop()
+        finally:
+            exit_on_finish = os.getenv("EXIT_ON_FINISH", "1").lower() not in {"0", "false"}
+            if exit_on_finish:
+                print("Attack process completed; exiting container.")
+                os.kill(os.getpid(), signal.SIGTERM)
+
 
 
 # --------------------------------------------------------------------------- #
