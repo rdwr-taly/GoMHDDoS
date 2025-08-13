@@ -208,9 +208,18 @@ class GoMHDDoSAdapter(ApplicationAdapter):
             print(f"GoMHDDoS process exited with code {return_code}")
             if stderr:
                 print(f"stderr: {stderr}")
-        
+
         # Clear configuration on exit
         self.current_config = {}
+
+        # If configured for ephemeral deployments, terminate the container once
+        # the attack process has finished so Docker can cleanly remove it. This
+        # behaviour is enabled by default but can be disabled by setting the
+        # environment variable ``EXIT_ON_FINISH`` to ``0`` or ``false``.
+        exit_on_finish = os.getenv("EXIT_ON_FINISH", "1").lower() not in {"0", "false"}
+        if exit_on_finish:
+            print("Attack process completed; exiting container.")
+            os._exit(0)
 
 
 # --------------------------------------------------------------------------- #
