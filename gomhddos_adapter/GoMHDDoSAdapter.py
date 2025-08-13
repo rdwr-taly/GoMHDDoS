@@ -9,7 +9,10 @@ management, metrics collection, and traffic control.
 from __future__ import annotations
 
 import os
+import time
 from typing import Any, Dict, List
+
+import psutil
 
 from app_adapter import ApplicationAdapter
 
@@ -26,6 +29,11 @@ class GoMHDDoSAdapter(ApplicationAdapter):
         self.current_config: Dict[str, Any] = {}
         self.binary_path = '/app/binary/gomhddos'
         self._ensure_binary()
+
+        # Track network usage for throughput metrics
+        self.net_interface = (static_cfg or {}).get('metrics_interface', 'eth0')
+        self._last_net_counters = psutil.net_io_counters(pernic=True).get(self.net_interface)
+        self._last_metrics_time = time.time()
 
     def _ensure_binary(self) -> None:
         """Ensure the GoMHDDoS binary exists and is executable."""
@@ -84,7 +92,7 @@ class GoMHDDoSAdapter(ApplicationAdapter):
         This method provides attack-specific metrics.
         """
         metrics = {}
-        
+
         # Add configuration info to metrics
         if self.current_config:
             metrics.update({
@@ -95,7 +103,7 @@ class GoMHDDoSAdapter(ApplicationAdapter):
                 'rpc_configured': self.current_config.get('rpc', 50),
                 'bandwidth_limit_mbps': self.current_config.get('bandwidth_limit_mbps', 10),
             })
-            
+
             if 'proxyfile' in self.current_config:
                 metrics['proxy_file'] = self.current_config['proxyfile']
             if 'cookie' in self.current_config:
@@ -103,16 +111,21 @@ class GoMHDDoSAdapter(ApplicationAdapter):
             if 'debug' in self.current_config:
                 metrics['debug_mode'] = self.current_config['debug']
 
+        # Include network throughput metrics
+        tx_mbps, rx_mbps = self._network_throughput_mbps()
+        metrics['throughput_outgoing_mbps'] = tx_mbps
+        metrics['throughput_incoming_mbps'] = rx_mbps
+
         return metrics
 
     def prometheus_metrics(self) -> List[str]:
         """Return Prometheus-formatted metrics."""
         metrics = []
-        
+
         if self.current_config:
             threads = self.current_config.get('threads', 100)
             bandwidth = self.current_config.get('bandwidth_limit_mbps', 10)
-            
+
             metrics.extend([
                 "# HELP gomhddos_threads_configured Number of configured attack threads",
                 f"gomhddos_threads_configured {threads}",
@@ -120,7 +133,36 @@ class GoMHDDoSAdapter(ApplicationAdapter):
                 f"gomhddos_bandwidth_limit_mbps {bandwidth}",
             ])
 
+        tx_mbps, rx_mbps = self._network_throughput_mbps()
+        metrics.extend([
+            "# HELP gomhddos_outgoing_throughput_mbps Outgoing network throughput in Mbps",
+            f"gomhddos_outgoing_throughput_mbps {tx_mbps}",
+            "# HELP gomhddos_incoming_throughput_mbps Incoming network throughput in Mbps",
+            f"gomhddos_incoming_throughput_mbps {rx_mbps}",
+        ])
+
         return metrics
+
+    def _network_throughput_mbps(self) -> tuple[float, float]:
+        """Calculate network throughput for the configured interface.
+
+        Returns a tuple of (tx_mbps, rx_mbps).
+        """
+        counters = psutil.net_io_counters(pernic=True).get(self.net_interface)
+        now = time.time()
+
+        tx_mbps = rx_mbps = 0.0
+        if counters and self._last_net_counters and self._last_metrics_time:
+            interval = now - self._last_metrics_time
+            if interval > 0:
+                tx_bytes = counters.bytes_sent - self._last_net_counters.bytes_sent
+                rx_bytes = counters.bytes_recv - self._last_net_counters.bytes_recv
+                tx_mbps = (tx_bytes * 8) / (interval * 1_000_000)
+                rx_mbps = (rx_bytes * 8) / (interval * 1_000_000)
+
+        self._last_net_counters = counters
+        self._last_metrics_time = now
+        return tx_mbps, rx_mbps
 
     # ---------- NEW v2.0 Core Service Integration Methods ------------------ #
 
