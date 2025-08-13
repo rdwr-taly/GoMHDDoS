@@ -227,6 +227,7 @@ class GoMHDDoSAdapter(ApplicationAdapter):
                 os.kill(os.getpid(), signal.SIGTERM)
 
 
+
 # --------------------------------------------------------------------------- #
 # Module-level helpers
 
