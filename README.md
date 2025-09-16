@@ -83,6 +83,82 @@ gomhddos --help
 ### Method 3: Download Binary
 Download pre-compiled binaries from the [Releases](https://github.com/yourusername/GoMHDDoS/releases) page.
 
+## 🧰 Running the Prebuilt Binary
+
+The repository ships with statically linked binaries under [`binary/`](binary/) (for example `mhddos-x64` for 64-bit Linux/macOS
+and `mhddos-arm64` for ARM64). You can also download the same artifacts from the releases page. Running them directly on a CLI
+requires no additional Go toolchain once the runtime layout is prepared.
+
+### 1. Make the binary executable
+
+```bash
+chmod +x binary/mhddos-x64           # adapt the name to the architecture you downloaded
+```
+
+On Windows, keep the file extension (`mhddos-x64.exe` if you renamed it) and run the following from PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass   # optional if scripts are restricted
+.\binary\mhddos-x64.exe --help
+```
+
+### 2. Run the CLI
+
+```bash
+./binary/mhddos-x64 --help           # prints every flag and the default values
+./binary/mhddos-x64 -method GET -url https://example.com -threads 100 -duration 60
+```
+
+Any relative path you pass (including the default proxy file) is resolved from the folder that contains the executable, so you
+can copy the binary plus the `files/` folder anywhere on disk and run it from there.
+
+### Default runtime layout
+
+When you execute the binary, it determines its own location (`scriptDir`) and expects the following structure alongside the
+executable:
+
+```
+<your-folder>/
+├── gomhddos (or mhddos-x64 / mhddos-arm64)
+└── files/
+    ├── proxies/
+    │   └── http.txt          # default proxy list used by -proxyfile (see below)
+    ├── useragent.txt         # auto-created with sensible defaults if missing
+    └── referers.txt          # auto-created with sensible defaults if missing
+```
+
+You can relocate the binary to any directory, provided this `files/` folder sits next to it (or you pass absolute paths for the
+individual resources).
+
+### Proxy file resolution & fallback behaviour
+
+- **Default path**: unless you override `-proxyfile`, the tool looks for `files/proxies/http.txt` relative to the binary's own
+  directory. For example, if you run `/opt/gomhddos/mhddos-x64`, the default proxy file is
+  `/opt/gomhddos/files/proxies/http.txt`.
+- **Custom locations**: you can supply either a relative or an absolute path via `-proxyfile`. Relative paths are resolved from
+  the binary directory; absolute paths are honoured as-is.
+
+#### When the proxy directory or file is missing
+
+If `files/proxies/http.txt` (or any custom path) does not exist when the program starts, GoMHDDoS will:
+
+1. Log a warning that the proxy file is missing.
+2. Automatically create the required directory tree (for example `files/proxies/`).
+3. Create an empty proxy file at the expected location.
+4. Proceed with the attack **without using proxies** until you populate the file.
+
+This makes the binary self-contained on first launch, but you must edit the newly created file to add one proxy per line before
+proxy-based methods become effective.
+
+#### When the proxy file exists but is empty (or only comments)
+
+- The program will emit a warning similar to `Empty or invalid Proxy File ... running flood without proxy`.
+- Every attack runs directly from your host until you populate the file with valid proxy entries.
+- Invalid lines are ignored individually, so you can mix comments (`# ...`) with actual proxies without causing a failure.
+
+Populate the file with entries such as `ip:port`, `user:pass@ip:port`, or full URLs like `socks5://example.com:1080` depending on
+your needs. Whenever at least one proxy is successfully parsed, the CLI prints a summary of how many were loaded per protocol.
+
 ## 🎮 Usage
 
 ### Command Line Flags (Recommended)
