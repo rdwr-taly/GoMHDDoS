@@ -1,4 +1,4 @@
-# GoMHDDoS Container Control Integration Dockerfile
+# GoMHDDoS ShowRunner-managed Dockerfile
 # Multi-stage build for optimized final image
 
 # Stage 1: Build Go binary
@@ -50,32 +50,22 @@ ARG APP_USER=appuser
 RUN useradd -ms /bin/bash ${APP_USER} && \
     echo "${APP_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     # Create necessary directories
-    mkdir -p /app/binary /app/files/proxies /app/logs && \
-    chown -R ${APP_USER}:${APP_USER} /app
+    mkdir -p /app/binary /app/files/proxies /app/logs /config && \
+    chown -R ${APP_USER}:${APP_USER} /app /config
 
 # Set working directory
 WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Clone Container Control Core v2.0 from GitHub
-RUN apt-get update && apt-get install -y --no-install-recommends git && \
-    git clone --branch v1.0.0 --depth 1 https://github.com/rdwr-taly/container-control.git /tmp/container-control && \
-    cp /tmp/container-control/container_control_core.py . && \
-    cp /tmp/container-control/app_adapter.py . && \
-    rm -rf /tmp/container-control && \
-    apt-get remove -y git && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
-
-# Copy application-specific files
-COPY gomhddos_adapter/ ./gomhddos_adapter/
-COPY config.yaml .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir showrunner-sdk[full]
 
 # Copy GoMHDDoS binary from builder stage
 COPY --from=builder /build/gomhddos /app/binary/gomhddos
+
+# Copy application entry point
+COPY main.py .
 
 # Copy GoMHDDoS files and data
 COPY files/ ./files/
@@ -85,28 +75,15 @@ COPY README.md .
 RUN chmod +x /app/binary/gomhddos && \
     chown -R ${APP_USER}:${APP_USER} /app
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-# Ensure proper permissions\n\
-chown -R appuser:appuser /app\n\
-chmod +x /app/binary/gomhddos\n\
-\n\
-# Start the container control service\n\
-exec python -m uvicorn container_control_core:app --host 0.0.0.0 --port 8080\n\
-' > /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
-
-# Health check
+# Health check against ShowRunner SDK metrics/health endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/api/health || exit 1
+  CMD curl -f http://localhost:9090/healthz || exit 1
 
-# Expose port
-EXPOSE 8080
+# Expose metrics/health port
+EXPOSE 9090
 
 # Use tini as init system
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Start the application
-CMD ["/app/entrypoint.sh"]
+CMD ["python", "main.py"]

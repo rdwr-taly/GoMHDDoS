@@ -1,13 +1,4 @@
-# Container Control Core dependencies
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
+# ShowRunner SDK is installed separately in Dockerfile (pip install showrunner-sdk[full])
+# These are additional runtime dependencies
+
 psutil>=5.9.0
-ruamel.yaml>=0.17.0
-
-# Additional dependencies for enhanced functionality
-pydantic>=2.0.0
-httpx>=0.25.0
-aiofiles>=23.0.0
-
-# Optional: Enhanced ASGI server
-uvloop>=0.19.0
