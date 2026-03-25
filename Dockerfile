@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables \
     sudo \
     curl \
+    git \
     # Process management
     tini \
     # Optional: bombardier for BOMB method
@@ -59,7 +60,7 @@ WORKDIR /app
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir showrunner-sdk[full]
+    pip install --no-cache-dir "showrunner-sdk[full] @ git+https://github.com/rdwr-taly/showrunner-sdk.git@main"
 
 # Copy GoMHDDoS binary from builder stage
 COPY --from=builder /build/gomhddos /app/binary/gomhddos
