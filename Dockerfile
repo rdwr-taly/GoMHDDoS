@@ -59,8 +59,7 @@ WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir "showrunner-sdk[full] @ git+https://github.com/rdwr-taly/showrunner-sdk.git@main"
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy GoMHDDoS binary from builder stage
 COPY --from=builder /build/gomhddos /app/binary/gomhddos

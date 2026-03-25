@@ -1,4 +1,2 @@
-# ShowRunner SDK is installed separately in Dockerfile (pip install showrunner-sdk[full])
-# These are additional runtime dependencies
-
 psutil>=5.9.0
+showrunner-sdk[full] @ git+https://github.com/rdwr-taly/showrunner-sdk.git@main
