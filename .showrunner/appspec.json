@@ -1,0 +1,96 @@
+{
+  "$schema": "showrunner/v1",
+  "id": "gomhddos",
+  "name": "GoMHDDoS",
+  "description": "Go-based Layer 7 DDoS attack tool supporting multiple methods (GET, POST, HEAD, etc.) with proxy support and configurable threading.",
+  "category": "Security Tools",
+  "subCategory": "DDoS Simulation",
+  "icon": "fas fa-bolt",
+  "lifecycle": "ephemeral",
+  "image": {
+    "name": "razor29/gomhddos"
+  },
+  "sdk": {
+    "version": ">=0.1.0",
+    "metrics_port": 9090,
+    "health_path": "/healthz",
+    "metrics_path": "/metrics"
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "method": {
+        "type": "string",
+        "title": "Attack Method",
+        "enum": ["GET", "POST", "HEAD", "STRESS", "CFB", "BYPASS", "DGB", "OVH", "AVB", "RHEX", "STOMP", "NULL"],
+        "default": "GET"
+      },
+      "url": {
+        "type": "string",
+        "title": "Target URL"
+      },
+      "threads": {
+        "type": "integer",
+        "title": "Threads",
+        "default": 5
+      },
+      "duration": {
+        "type": "integer",
+        "title": "Duration (seconds)",
+        "default": 60
+      },
+      "rpc": {
+        "type": "integer",
+        "title": "Requests Per Connection",
+        "default": 1
+      },
+      "proxyfile": {
+        "type": "string",
+        "title": "Proxy File Path",
+        "default": ""
+      },
+      "cookie": {
+        "type": "string",
+        "title": "Cookie Header"
+      },
+      "debug": {
+        "type": "boolean",
+        "title": "Debug Mode",
+        "default": false
+      },
+      "bandwidth_limit_mbps": {
+        "type": "number",
+        "title": "Bandwidth Limit (Mbps)",
+        "default": 0,
+        "description": "0 = unlimited"
+      }
+    },
+    "required": ["method", "url"]
+  },
+  "ui": {
+    "sections": [
+      {
+        "title": "Attack Configuration",
+        "fields": ["method", "url", "threads", "duration", "rpc"]
+      },
+      {
+        "title": "Proxy & Network",
+        "fields": ["proxyfile", "bandwidth_limit_mbps"]
+      },
+      {
+        "title": "Advanced",
+        "fields": ["cookie", "debug"]
+      }
+    ],
+    "card_fields": {
+      "primary_label": "url",
+      "secondary_label": "method",
+      "metrics": ["attack_rps", "attack_threads"]
+    }
+  },
+  "capabilities": {
+    "can_stop": true,
+    "can_redeploy": true,
+    "can_resume": false
+  }
+}
