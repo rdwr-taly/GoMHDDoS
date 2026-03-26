@@ -1,96 +1,282 @@
 {
-  "$schema": "showrunner/v1",
-  "id": "gomhddos",
-  "name": "GoMHDDoS",
-  "description": "Go-based Layer 7 DDoS attack tool supporting multiple methods (GET, POST, HEAD, etc.) with proxy support and configurable threading.",
+  "capabilities": {
+    "can_redeploy": true,
+    "can_resume": false,
+    "can_stop": true,
+    "can_update_while_running": true
+  },
   "category": "Security Tools",
-  "subCategory": "DDoS Simulation",
-  "icon": "fas fa-bolt",
-  "lifecycle": "ephemeral",
-  "image": {
-    "name": "razor29/gomhddos"
-  },
-  "sdk": {
-    "version": ">=0.1.0",
-    "metrics_port": 9090,
-    "health_path": "/healthz",
-    "metrics_path": "/metrics"
-  },
-  "config_schema": {
-    "type": "object",
-    "properties": {
-      "method": {
-        "type": "string",
-        "title": "Attack Method",
-        "enum": ["GET", "POST", "HEAD", "STRESS", "CFB", "BYPASS", "DGB", "OVH", "AVB", "RHEX", "STOMP", "NULL"],
-        "default": "GET"
+  "containerControl": {
+    "actions": {
+      "start": {
+        "endpoint": "/api/start",
+        "method": "POST",
+        "payload_template": {
+          "bandwidth_limit_mbps": "{{env.BANDWIDTH_LIMIT_MBPS}}",
+          "cookie": "{{env.COOKIE}}",
+          "debug": "{{env.DEBUG}}",
+          "duration": "{{env.DURATION}}",
+          "latency_ms": "{{env.LATENCY_MS}}",
+          "method": "{{env.METHOD}}",
+          "proxyfile": "{{env.PROXYFILE}}",
+          "referer": "{{env.REFERER}}",
+          "rpc": "{{env.RPC}}",
+          "threads": "{{env.THREADS}}",
+          "url": "{{env.URL}}",
+          "user_agent": "{{env.USER_AGENT}}"
+        },
+        "payload_template_type": "custom"
       },
-      "url": {
-        "type": "string",
-        "title": "Target URL"
+      "stop": {
+        "endpoint": "/api/stop",
+        "method": "POST"
       },
-      "threads": {
-        "type": "integer",
-        "title": "Threads",
-        "default": 5
-      },
-      "duration": {
-        "type": "integer",
-        "title": "Duration (seconds)",
-        "default": 60
-      },
-      "rpc": {
-        "type": "integer",
-        "title": "Requests Per Connection",
-        "default": 1
-      },
-      "proxyfile": {
-        "type": "string",
-        "title": "Proxy File Path",
-        "default": ""
-      },
-      "cookie": {
-        "type": "string",
-        "title": "Cookie Header"
-      },
-      "debug": {
-        "type": "boolean",
-        "title": "Debug Mode",
-        "default": false
-      },
-      "bandwidth_limit_mbps": {
-        "type": "number",
-        "title": "Bandwidth Limit (Mbps)",
-        "default": 0,
-        "description": "0 = unlimited"
+      "update_config": {
+        "endpoint": "/api/update",
+        "method": "POST",
+        "payload_template_type": "key_value_pairs",
+        "updatable_fields": [
+          "BANDWIDTH_LIMIT_MBPS"
+        ]
       }
     },
-    "required": ["method", "url"]
+    "api_port_fixed": 8080,
+    "enabled": true,
+    "metrics_endpoint_path": "/api/metrics"
   },
-  "ui": {
-    "sections": [
+  "deployment": {
+    "container_command_template": [
+      "/bin/sh",
+      "-lc",
+      "EXIT_ON_FINISH=1 python -m uvicorn container_control_core:app --host 0.0.0.0 --port 8080"
+    ],
+    "default_env_vars": [
       {
-        "title": "Attack Configuration",
-        "fields": ["method", "url", "threads", "duration", "rpc"]
+        "default_value": "GET",
+        "label": "Attack Method",
+        "name": "METHOD",
+        "options": [
+          "GET",
+          "POST",
+          "HEAD",
+          "PUT",
+          "DELETE",
+          "OPTIONS",
+          "PATCH",
+          "BYPASS",
+          "BOMB"
+        ],
+        "required": true,
+        "tooltip": "Type of HTTP attack method to use",
+        "type": "select"
       },
       {
-        "title": "Proxy & Network",
-        "fields": ["proxyfile", "bandwidth_limit_mbps"]
+        "label": "Target URL",
+        "name": "URL",
+        "required": true,
+        "tooltip": "Target URL for the attack (e.g., https://target.com)",
+        "type": "string"
       },
       {
-        "title": "Advanced",
-        "fields": ["cookie", "debug"]
+        "default_value": 100,
+        "label": "Attack Threads",
+        "max": 10000,
+        "min": 1,
+        "name": "THREADS",
+        "required": true,
+        "tooltip": "Number of concurrent attack threads",
+        "type": "integer"
+      },
+      {
+        "default_value": 60,
+        "label": "Duration (seconds)",
+        "max": 3600,
+        "min": 1,
+        "name": "DURATION",
+        "required": true,
+        "tooltip": "Attack duration in seconds",
+        "type": "integer"
+      },
+      {
+        "default_value": 50,
+        "label": "Requests Per Connection",
+        "max": 1000,
+        "min": 1,
+        "name": "RPC",
+        "required": false,
+        "tooltip": "Number of requests per connection before reconnecting",
+        "type": "integer"
+      },
+      {
+        "default_value": "/app/files/proxies/http.txt",
+        "label": "Proxy List File",
+        "name": "PROXYFILE",
+        "required": false,
+        "tooltip": "Path to proxy list file (leave empty to disable proxies)",
+        "type": "string"
+      },
+      {
+        "label": "Cookie Header",
+        "name": "COOKIE",
+        "required": false,
+        "tooltip": "Custom cookie header to include in requests",
+        "type": "string"
+      },
+      {
+        "label": "User Agent",
+        "name": "USER_AGENT",
+        "required": false,
+        "tooltip": "Custom User-Agent header (leave empty for random)",
+        "type": "string"
+      },
+      {
+        "label": "Referer Header",
+        "name": "REFERER",
+        "required": false,
+        "tooltip": "Custom Referer header for requests",
+        "type": "string"
+      },
+      {
+        "default_value": 10,
+        "label": "Bandwidth Limit (Mbps)",
+        "max": 10000,
+        "min": 1,
+        "name": "BANDWIDTH_LIMIT_MBPS",
+        "required": false,
+        "tooltip": "Maximum outgoing bandwidth in Mbps",
+        "type": "integer"
+      },
+      {
+        "default_value": 0,
+        "label": "Network Latency (ms)",
+        "max": 5000,
+        "min": 0,
+        "name": "LATENCY_MS",
+        "required": false,
+        "tooltip": "Artificial network latency to simulate",
+        "type": "integer"
+      },
+      {
+        "default_value": false,
+        "label": "Debug Mode",
+        "name": "DEBUG",
+        "required": false,
+        "tooltip": "Enable detailed logging and debug output",
+        "type": "boolean"
       }
     ],
-    "card_fields": {
-      "primary_label": "url",
-      "secondary_label": "method",
-      "metrics": ["attack_rps", "attack_threads"]
+    "volume_mounts_template": [
+      {
+        "container_path": "/app/files/proxies",
+        "editable": true,
+        "host_path_template": "/home/radware/proxies",
+        "mode": "rw",
+        "optional": true
+      }
+    ]
+  },
+  "deploymentContext": "app",
+  "description": "High-performance Layer 7 Web DDoS attack tool using MHDDoS techniques for stress testing and security validation.",
+  "displayName": "GoMHDDoS",
+  "icon": "fas fa-bolt",
+  "id": "gomhddos",
+  "image_id_ref": "razor29/gomhddos",
+  "monitoring": {
+    "prometheus": {
+      "enabled": true,
+      "scrape_path": "/api/metrics",
+      "scrape_port_number": 8080
     }
   },
-  "capabilities": {
-    "can_stop": true,
-    "can_redeploy": true,
-    "can_resume": false
+  "subCategory": "DDoS Attack",
+  "taskLifecycle": "ephemeral",
+  "ui": {
+    "card_basic_metrics": [
+      {
+        "label": "CPU",
+        "max_value": 100,
+        "source_path": "system.cpu_percent",
+        "unit": "%"
+      },
+      {
+        "label": "Memory",
+        "max_value": 100,
+        "source_path": "system.memory_percent",
+        "unit": "%"
+      }
+    ],
+    "card_info_fields": [
+      {
+        "label": "Target URL",
+        "source_key": "URL",
+        "source_type": "env_var"
+      },
+      {
+        "label": "Attack Method",
+        "source_key": "METHOD",
+        "source_type": "env_var"
+      },
+      {
+        "label": "Threads",
+        "source_key": "THREADS",
+        "source_type": "env_var"
+      },
+      {
+        "label": "Duration",
+        "source_key": "DURATION",
+        "source_type": "env_var"
+      }
+    ],
+    "card_live_update_fields": [
+      "BANDWIDTH_LIMIT_MBPS"
+    ],
+    "card_primary_metric": [
+      {
+        "label": "Outgoing",
+        "source_path": "adapter_metrics.throughput_outgoing_mbps",
+        "unit": "Mbps"
+      },
+      {
+        "label": "Incoming",
+        "source_path": "adapter_metrics.throughput_incoming_mbps",
+        "unit": "Mbps"
+      }
+    ],
+    "card_secondary_metrics": [
+      {
+        "label": "Bytes Sent",
+        "source_path": "network.bytes_sent",
+        "unit": "bytes"
+      }
+    ],
+    "deployment_form_sections": [
+      {
+        "fields": [
+          "METHOD",
+          "URL",
+          "THREADS",
+          "DURATION",
+          "RPC"
+        ],
+        "title": "Attack Configuration"
+      },
+      {
+        "fields": [
+          "PROXYFILE",
+          "USER_AGENT",
+          "REFERER",
+          "COOKIE"
+        ],
+        "title": "Proxy & Headers"
+      },
+      {
+        "fields": [
+          "BANDWIDTH_LIMIT_MBPS",
+          "LATENCY_MS",
+          "DEBUG"
+        ],
+        "title": "Network Controls"
+      }
+    ]
   }
 }
