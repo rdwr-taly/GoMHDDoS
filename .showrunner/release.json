@@ -2,7 +2,7 @@
   "image": "razor29/gomhddos:v2.0.0-dev",
   "version": "v2.0.0-dev",
   "is_latest": false,
-  "released_at": "2026-03-25T16:46:52Z",
-  "commit": "454714113d15c59fc49c15ef93217225c61b6773",
+  "released_at": "2026-03-30T08:07:50Z",
+  "commit": "dc31a6d515d73960bc07d1e4d7a3f318da2f076f",
   "changelog": ""
 }
