@@ -6,50 +6,7 @@
     "can_update_while_running": true
   },
   "category": "Security Tools",
-  "containerControl": {
-    "actions": {
-      "start": {
-        "endpoint": "/api/start",
-        "method": "POST",
-        "payload_template": {
-          "bandwidth_limit_mbps": "{{env.BANDWIDTH_LIMIT_MBPS}}",
-          "cookie": "{{env.COOKIE}}",
-          "debug": "{{env.DEBUG}}",
-          "duration": "{{env.DURATION}}",
-          "latency_ms": "{{env.LATENCY_MS}}",
-          "method": "{{env.METHOD}}",
-          "proxyfile": "{{env.PROXYFILE}}",
-          "referer": "{{env.REFERER}}",
-          "rpc": "{{env.RPC}}",
-          "threads": "{{env.THREADS}}",
-          "url": "{{env.URL}}",
-          "user_agent": "{{env.USER_AGENT}}"
-        },
-        "payload_template_type": "custom"
-      },
-      "stop": {
-        "endpoint": "/api/stop",
-        "method": "POST"
-      },
-      "update_config": {
-        "endpoint": "/api/update",
-        "method": "POST",
-        "payload_template_type": "key_value_pairs",
-        "updatable_fields": [
-          "BANDWIDTH_LIMIT_MBPS"
-        ]
-      }
-    },
-    "api_port_fixed": 8080,
-    "enabled": true,
-    "metrics_endpoint_path": "/api/metrics"
-  },
   "deployment": {
-    "container_command_template": [
-      "/bin/sh",
-      "-lc",
-      "EXIT_ON_FINISH=1 python -m uvicorn container_control_core:app --host 0.0.0.0 --port 8080"
-    ],
     "default_env_vars": [
       {
         "default_value": "GET",
@@ -165,6 +122,20 @@
         "type": "boolean"
       }
     ],
+    "sdk_config_template": {
+      "bandwidth_limit_mbps": "{{env.BANDWIDTH_LIMIT_MBPS}}",
+      "cookie": "{{env.COOKIE}}",
+      "debug": "{{env.DEBUG}}",
+      "duration": "{{env.DURATION}}",
+      "latency_ms": "{{env.LATENCY_MS}}",
+      "method": "{{env.METHOD}}",
+      "proxyfile": "{{env.PROXYFILE}}",
+      "referer": "{{env.REFERER}}",
+      "rpc": "{{env.RPC}}",
+      "threads": "{{env.THREADS}}",
+      "url": "{{env.URL}}",
+      "user_agent": "{{env.USER_AGENT}}"
+    },
     "volume_mounts_template": [
       {
         "container_path": "/app/files/proxies",
@@ -184,12 +155,12 @@
   "monitoring": {
     "prometheus": {
       "enabled": true,
-      "scrape_path": "/api/metrics",
-      "scrape_port_number": 8080
+      "scrape_path": "/metrics",
+      "scrape_port_number": 9090
     }
   },
   "subCategory": "DDoS Attack",
-  "taskLifecycle": "ephemeral",
+  "taskLifecycle": "stateful",
   "ui": {
     "card_basic_metrics": [
       {
