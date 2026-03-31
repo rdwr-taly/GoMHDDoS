@@ -203,21 +203,28 @@
     ],
     "card_primary_metric": [
       {
-        "label": "Outgoing",
-        "source_path": "adapter_metrics.throughput_outgoing_mbps",
-        "unit": "Mbps"
+        "label": "Status",
+        "source_path": "attack_status",
+        "unit": ""
       },
       {
-        "label": "Incoming",
-        "source_path": "adapter_metrics.throughput_incoming_mbps",
-        "unit": "Mbps"
+        "label": "Runs",
+        "source_path": "attack_runs_total",
+        "unit": ""
       }
     ],
     "card_secondary_metrics": [
       {
-        "label": "Bytes Sent",
-        "source_path": "network.bytes_sent",
-        "unit": "bytes"
+        "label": "Threads",
+        "source_key": "THREADS",
+        "source_type": "env_var",
+        "unit": ""
+      },
+      {
+        "label": "Duration",
+        "source_key": "DURATION",
+        "source_type": "env_var",
+        "unit": "s"
       }
     ],
     "deployment_form_sections": [
