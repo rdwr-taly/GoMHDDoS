@@ -28,7 +28,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     curl \
     git \
-    tini \
     && curl -L https://github.com/codesenberg/bombardier/releases/latest/download/bombardier-linux-amd64 \
        -o /usr/local/bin/bombardier \
     && chmod +x /usr/local/bin/bombardier \
@@ -38,7 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ARG APP_USER=appuser
 RUN useradd -ms /bin/bash ${APP_USER} && \
     echo "${APP_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    mkdir -p /app/binary /app/files/proxies /app/logs /config && \
+    mkdir -p /app/binary/files/proxies /app/files/proxies /app/logs /config && \
     chown -R ${APP_USER}:${APP_USER} /app /config
 
 WORKDIR /app
@@ -47,7 +46,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --from=builder /build/gomhddos /app/binary/gomhddos
-COPY files/ ./files/
+COPY files/ /app/binary/files/
 COPY main.py README.md ./
 
 RUN chmod +x /app/binary/gomhddos && \
@@ -60,5 +59,5 @@ EXPOSE 9090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD curl -sf http://127.0.0.1:9090/healthz || exit 1
 
-ENTRYPOINT ["/usr/bin/tini", "--", "python", "main.py"]
+ENTRYPOINT ["python", "main.py"]
 

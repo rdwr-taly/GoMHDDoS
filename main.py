@@ -1,10 +1,11 @@
 """ShowRunner-managed entry point for GoMHDDoS."""
 
-import subprocess
-import signal
 import logging
 import os
+import signal
+import subprocess
 import threading
+import time
 
 from showrunner_sdk import config, metrics, health
 
@@ -15,6 +16,8 @@ logging.basicConfig(
 )
 
 BINARY_PATH = "/app/binary/gomhddos"
+CONFIG_PATH = os.getenv("SHOWRUNNER_CONFIG_PATH", "/config/app.json")
+STARTUP_CONFIG_WAIT_SECONDS = int(os.getenv("STARTUP_CONFIG_WAIT_SECONDS", "10"))
 
 # ── App-specific Prometheus metrics ──
 threads_gauge = metrics.gauge("attack_threads", "Configured attack threads")
@@ -150,11 +153,13 @@ def main() -> None:
     # Start metrics + health server on :9090
     metrics.start_server()
 
+    # Re-start the attack whenever config is reloaded via SIGHUP.
+    # Register the callback before the initial load so startup config is handled
+    # through the same path as later reloads.
+    config.on_reload(start_attack)
+
     # Load initial config
     cfg_data = config.load()
-
-    # Re-start the attack whenever config is reloaded via SIGHUP
-    config.on_reload(lambda new_cfg: start_attack(new_cfg))
 
     # Register shutdown handlers
     signal.signal(signal.SIGTERM, handle_shutdown)
@@ -164,9 +169,21 @@ def main() -> None:
     monitor = threading.Thread(target=_monitor_process, name="process-monitor", daemon=True)
     monitor.start()
 
-    if cfg_data:
-        start_attack(cfg_data)
-    else:
+    if not cfg_data and STARTUP_CONFIG_WAIT_SECONDS > 0:
+        logger.info(
+            "No config present at startup -- waiting up to %ss for /config/app.json",
+            STARTUP_CONFIG_WAIT_SECONDS,
+        )
+        deadline = time.time() + STARTUP_CONFIG_WAIT_SECONDS
+        while time.time() < deadline and not shutdown_event.is_set():
+            time.sleep(0.5)
+            if not os.path.exists(CONFIG_PATH):
+                continue
+            cfg_data = config.load()
+            if cfg_data:
+                break
+
+    if not cfg_data:
         logger.info("No config present -- waiting for SIGHUP with config")
         health.set_status("waiting", reason="no config")
 
