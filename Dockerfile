@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iptables \
     sudo \
     curl \
+    git \
     tini \
     && curl -L https://github.com/codesenberg/bombardier/releases/latest/download/bombardier-linux-amd64 \
        -o /usr/local/bin/bombardier \
