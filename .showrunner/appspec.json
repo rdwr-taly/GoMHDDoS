@@ -160,7 +160,7 @@
     }
   },
   "subCategory": "DDoS Attack",
-  "taskLifecycle": "stateful",
+  "taskLifecycle": "ephemeral",
   "ui": {
     "card_basic_metrics": [
       {

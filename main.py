@@ -80,8 +80,6 @@ def start_attack(cfg_data: dict) -> None:
 
         process = subprocess.Popen(
             cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
         )
 
         health.set_status("running")
